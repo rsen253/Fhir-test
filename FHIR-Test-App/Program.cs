@@ -38,6 +38,10 @@ namespace FHIR_Test_App
             //Read the patient
             var patientDetails = ReadPatient(fhirClient, "2819561");
             UpdatePatient(fhirClient, patientDetails);
+
+            //CreateOrganization(fhirClient);
+
+            GetPatient(fhirClient, "2819561");
         }
 
         /// <summary>
@@ -122,6 +126,21 @@ namespace FHIR_Test_App
             return patients;
         }
 
+        static void CreateOrganization(FhirClient fhirClient)
+        {
+            var organization = new Organization()
+            {
+                Name = "Mindfire",
+                Active = true,
+                Alias = new List<String>{
+                    "mfsi"
+                }
+            };
+
+            var result = fhirClient.Create<Organization>(organization);
+            System.Console.WriteLine($"organization id {result.Id}");
+        }
+
         /// <summary>
         /// Create a patient with the specified name
         /// </summary>
@@ -136,25 +155,25 @@ namespace FHIR_Test_App
             Patient toCreate = new Patient()
             {
                 Name = new List<HumanName>()
-        {
-          new HumanName()
-          {
-            Family = familyName,
-            Given = new List<string>()
             {
-              givenName,
+              new HumanName()
+              {
+                Family = familyName,
+                Given = new List<string>()
+                {
+                  givenName,
+                },
+              }
             },
-          }
-        },
                 BirthDateElement = new Date(1981, 01, 01),
                 Gender = AdministrativeGender.Male,
                 Telecom = new List<ContactPoint>(){
-            new ContactPoint(){
-            System = ContactPoint.ContactPointSystem.Phone,
-            Value = "9999999999",
-            Use = ContactPoint.ContactPointUse.Home
+                new ContactPoint(){
+                System = ContactPoint.ContactPointSystem.Phone,
+                Value = "9999999999",
+                Use = ContactPoint.ContactPointUse.Home
+                },
             },
-        },
             };
 
             Patient created = fhirClient.Create<Patient>(toCreate);
@@ -210,26 +229,45 @@ namespace FHIR_Test_App
           FhirClient fhirClient,
           Patient patient)
         {
-            patient.Telecom.Add(new ContactPoint()
-            {
-                System = ContactPoint.ContactPointSystem.Email,
-                Value = "000000000",
-                Use = ContactPoint.ContactPointUse.Work,
-            });
+            // patient.Telecom.Add(new ContactPoint()
+            // {
+            //     System = ContactPoint.ContactPointSystem.Email,
+            //     Value = "000000000",
+            //     Use = ContactPoint.ContactPointUse.Work,
+            // });
 
-            patient.Address.Add(
-                new Address()
-                {
-                    City = "Kolkata",
-                    Country = "India",
-                    District = "Kolkata",
-                    State = "West Bengal"
-                }
-            );
+            // patient.Address.Add(
+            //     new Address()
+            //     {
+            //         City = "Kolkata",
+            //         Country = "India",
+            //         District = "Kolkata",
+            //         State = "West Bengal"
+            //     }
+            // );
 
+            // patient.ManagingOrganization = new ResourceReference
+            // {
+            //     Reference = "Organization/2819640"
+            // };
+            var nationality = new Extension("http://hl7.org/fhir/StructureDefinition/patient-nationality",
+                                   new FhirString("Indian"));
+            patient.Extension.Add(nationality);
             var updatePatient = fhirClient.Update<Patient>(patient);
             System.Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(updatePatient));
             //System.Console.WriteLine(JsonSerializer.Serialize<Patient>(updatePatient));
+        }
+
+        static void GetPatient(FhirClient fhirClient, string id)
+        {
+            var patientLists = fhirClient.Search<Patient>(new string[] { "organization=Organization/2819640" });
+            int count = 1;
+            foreach (Bundle.EntryComponent entry in patientLists.Entry)
+            {
+                var patientDetails = (Patient)entry.Resource;
+                System.Console.WriteLine($"{count}. Patient Name: {patientDetails.Name[0].ToString()}");
+                count++;
+            }
         }
     }
 }
